@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Style CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <!-- <link rel="stylesheet" href="style.css"> -->
+  
+    <!-- axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  
+    <!-- Vue3 -->
+    <script src="https://unpkg.com/vue@next"></script>
+  
+  <title>產品列表</title>
+</head>
+<body>
+  <div id="app">
+    <user-product-modal ref="userProductModal" :product="product" @add-cart="addCart"></user-product-modal>
+    <div>
+      <h1>產品列表</h1>
+    </div>
+    <div class="row">
+
+      <template v-for="product in products" :key="product.id">
+        <div class="col-sm-4">
+          <div class="card">
+            <img :src="product.imageUrl"  class="card-img-top" :alt="product.title">
+            <div class="card-body">
+              <h5 class="card-title">{{ product.title }}</h5>
+              <p class="card-text">{{ product.description }}</p>
+              <button type="button" class="btn btn-primary m-1"
+              :disabled="loadingStatus.loadingItem === product.id"
+              @click="openModal(product)">查看內容
+              </button>
+              <button type="button" class="btn btn-primary m-1" 
+              :disabled="loadingStatus.loadingItem === product.id"
+              @click="addCart(product.id)">加入購物車
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+
+    </div>
+    
+    <div>
+      <h2>購物車</h2>
+    </div>
+    <div>
+      <table>
+        <thead>
+          <tr>
+            <th>貨品</th>
+            <th>數量</th>   
+            <th>小計</th>    
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="cart.carts">
+            <tr v-for="item in cart.carts" :key="item.id">
+              <td>{{ item.product.title }}</td>
+              <td>
+                <input type="number" min="1" v-model.number="item.qty"
+                :disabled="item.id === loadingStatus.loadingItem"
+                @change="updateCart(item)">
+              </td>
+              <td>{{ item.total }}</td>
+              <td><button type="button" class="btn btn-danger"
+                :disabled="item.id === loadingStatus.loadingItem"
+                @click="deleteOne(item)">刪除</button></td>
+            </tr>
+          </template>
+          <template v-if="cart.total !== 0">
+            <tr>
+              <td>
+                合計: {{ cart.final_total }}
+              </td>
+              <td>
+                <button type="button" class="btn btn-danger" 
+                  @click="deleteAll">刪除全部</button>
+              </td>
+            </tr>
+          </template>            
+        </tbody>
+      </table>
+    </div>
+
+    <div class="my-5 row justify-content-center">
+      <v-form class="col-md-6" v-slot="{ errors }"  @submit="createOrder">
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <v-field id="email" name="email" type="email" class="form-control"
+                   :class="{ 'is-invalid': errors['email'] }" placeholder="請輸入 Email" 
+                   rules="email|required" v-model="form.user.email"
+                  ></v-field>
+          <error-message name="email" class="invalid-feedback"></error-message>
+        </div>
+
+        <div class="mb-3">
+          <label for="name" class="form-label">收件人姓名</label>
+          <v-field id="name" name="姓名" type="text" class="form-control" :class="{ 'is-invalid': errors['姓名'] }"
+                   placeholder="請輸入姓名" 
+                   rules="required"
+                   v-model="form.user.name"
+                   ></v-field>
+          <error-message name="姓名" class="invalid-feedback"></error-message>
+        </div>
+
+        <div class="mb-3">
+          <label for="tel" class="form-label">收件人電話</label>
+          <v-field id="tel" name="電話" type="text" class="form-control" :class="{ 'is-invalid': errors['電話'] }"
+                   placeholder="請輸入電話" 
+                   rules="required"
+                   v-model="form.user.tel"
+                   ></v-field>
+          <error-message name="電話" class="invalid-feedback"></error-message>
+        </div>
+
+        <div class="mb-3">
+          <label for="address" class="form-label">收件人地址</label>
+          <v-field id="address" name="地址" type="text" class="form-control" :class="{ 'is-invalid': errors['地址'] }"
+                   placeholder="請輸入地址" 
+                   rules="required" 
+                   v-model="form.user.address"
+                   ></v-field>
+          <error-message name="地址" class="invalid-feedback"></error-message>
+        </div>
+
+        <div class="mb-3">
+          <label for="message" class="form-label">留言</label>
+          <textarea id="message" class="form-control" cols="30" rows="10" v-model="form.message"
+          ></textarea>
+        </div>
+        <div class="text-end">
+          <button type="submit" class="btn btn-danger">送出訂單</button>
+        </div>
+      </v-form>
+    </div>
+
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vee-validate/4.1.17/vee-validate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vee-validate/i18n@4.1.17/dist/vee-validate-i18n.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vee-validate/rules@4.1.17/dist/vee-validate-rules.min.js"></script>
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
